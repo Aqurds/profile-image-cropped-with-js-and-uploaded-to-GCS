@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/cropper/4.0.0/cropper.js"></script>
+	<link  href="https://cdnjs.cloudflare.com/ajax/libs/cropper/4.0.0/cropper.css" rel="stylesheet">
+    <style media="screen">
+      /* Limit image width to avoid overflow the container */
+      img {
+        max-width: 100%; /* This rule is very important, please do not ignore this! */
+      }
+
+      #canvas {
+        height: 300px;
+        width: 300px;
+        background-color: #ffffff;
+        cursor: default;
+        border: 1px solid black;
+		    margin:0 auto;
+      }
+
+      /* .preview-div{
+        position:absolute;
+        top:-9990px;
+        left:0;
+        width:100%;
+        height:100%;
+        background: rgba(0,0,0,.7);
+      } */
+    </style>
+  </head>
+  <body>
+
+    <p style="text-align:center;">
+    <!-- Below are a series of inputs which allow file selection and interaction with the cropper api -->
+    		<input type="file" id="fileInput" accept="image/*" />
+        <input type="button" id="btnPreview" value="Preview" />
+    		<input type="button" id="btnCrop" value="Save" />
+    		<input type="button" id="btnRestore" value="Restore" />
+			<input type="button" id="btnRemove" value="Remove Image" />
+    </p>
+    <div style="text-align:center; background:red; width:300px; height:300px; margin:0 auto;">
+      <canvas id="canvas">
+        Your browser does not support the HTML5 canvas element.
+      </canvas>
+    </div>
+
+
+
+    <!-- <div class="preview-div" id="previewContaineDiv">
+      <div id="result" style="position:absolute; top:50%; left:50%; width:150px; height:150px; margin-top:-75px; margin-left:-75px; border-radius:50%; overflow:hidden;background:black; box-shadow:0px 0px 10px 3px rgba(0,0,0,.7);"></div>
+      <div class="" id="preview-close-button" style="font-size:24px; color:#ffffff; position:absolute; top:20px; right:20px; cursor:pointer; font-family:helvetica;">
+        X
+      </div>
+    </div> -->
+    <div class="" style="margin: 20px auto; color:#000000; font-weight:bold; font-size:18px; text-align:center;">
+      <p id="image-url"></p>
+    </div>
+    <div id="result" style="margin:20px auto; width:150px; height:150px; border-radius:50%; overflow:hidden;"></div>
+
+
+
+
+    <script type="text/javascript">
+      var canvas  = $("#canvas"),
+          context = canvas.get(0).getContext("2d"),
+          $result = $('#result');
+          // preview_container = $('#previewContainerDiv'),
+          // preview_close_button = $('#preview-close-button');
+
+      $('#fileInput').on( 'change', function(){
+          if (this.files && this.files[0]) {
+            if ( this.files[0].type.match(/^image\//) ) {
+              var reader = new FileReader();
+              reader.onload = function(evt) {
+                 var img = new Image();
+                 img.onload = function() {
+                   context.canvas.height = img.height;
+                   context.canvas.width  = img.width;
+                   context.drawImage(img, 0, 0);
+                   var cropper = canvas.cropper({
+                     aspectRatio: 16 / 16
+                   });
+                   $('#btnPreview').click(function(){
+                     // alert('hello');
+                     var croppedImageDataURL = canvas.cropper('getCroppedCanvas').toDataURL("image/png");
+                     $result.append( $('<img>').attr('src', croppedImageDataURL) );
+                     // $('#preview-container-div').css("top", "0px");
+                   });
+                   $('#btnCrop').click(function() {
+                      // Get a string base 64 data url
+                      var croppedImageDataURL = canvas.cropper('getCroppedCanvas').toDataURL("image/png");
+                      // $result.append( $('<img>').attr('src', croppedImageDataURL) );
+                      var imageString = croppedImageDataURL.split(",")[1];
+                      console.log(typeof(imageString));
+
+                      $.ajax({
+                          url:"/croppedimage",
+                          // send the base64 post parameter
+                          data:imageString,
+                          // important POST method !
+                          type:"post",
+                          processData: false,
+                          contentType: false,
+                          complete:function(){
+                            console.log("Ready");
+                            console.log(imageString);
+                          }
+                        }).done(function(data) {
+                  				$('#image-url').text(data.imageurl);
+                    		});
+
+                   });
+                   $('#btnRestore').click(function() {
+                     canvas.cropper('reset');
+                     $result.empty();
+                     // canvas.empty();
+                   });
+        				   $('#btnRemove').click(function() {
+                     canvas.cropper('destroy');
+                     $result.empty();
+                   });
+                 };
+                 img.src = evt.target.result;
+      				};
+              reader.readAsDataURL(this.files[0]);
+            }
+            else {
+              alert("Invalid file type! Please select an image file.");
+            }
+          }
+          else {
+            alert('No file(s) selected.');
+          }
+      });
+    </script>
+  </body>
+</html>
